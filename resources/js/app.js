@@ -1,4 +1,3 @@
-import './bootstrap';
 // Importa o núcleo do Vue.js
 import { createApp } from 'vue';
  

@@ -12,7 +12,7 @@ return new class extends Migration
         // Cria a tabela "pessoas" no banco de dados
         Schema::create('pessoas', function (Blueprint $table) {
             $table->id(); // Coluna "id" (chave primária, auto incremento)
-            $table->string('nome', 255); // Coluna "nome", do tipo texto
+            $table->string('nome'); // Coluna "nome", do tipo texto
             $table->timestamps(); // Colunas created_at e updated_at
         });
     }
