@@ -13,7 +13,9 @@ return new class extends Migration
         Schema::create('pessoas', function (Blueprint $table) {
             $table->id(); // Coluna "id" (chave primária, auto incremento)
             $table->string('nome'); // Coluna "nome", do tipo texto
+            $table->string('email')->unique();// Coluna "email", do tipo texto, com valor único
             $table->timestamps(); // Colunas created_at e updated_at
+            
         });
     }
  
