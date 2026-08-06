@@ -46,10 +46,10 @@ class PessoaController extends Controller
      * FUNÇÃO EXCLUIR
      * Remove uma pessoa pelo ID.
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         // Procura uma pessoa no banco utilizando o ID recebido
-        $pessoa = Pessoa::find($id);
+        $pessoa = Pessoa::findOrFail($id);
  
         // Exclui o registro encontrado
         $pessoa->delete();
