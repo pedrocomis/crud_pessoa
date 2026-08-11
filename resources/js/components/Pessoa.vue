@@ -1,103 +1,195 @@
 <template>
-    <!-- Container principal da tela, usando classes do Bootstrap -->
     <div class="container mt-4">
-        <!-- Título da página -->
         <h1 class="mb-4">Cadastro de Pessoas</h1>
 
-        <!-- Formulário de cadastro -->
-        <div class="input-group mb-4">
-            <!-- Campo de entrada do nome -->
-            <!-- v-model liga o campo com a variável "nome" do JavaScript -->
-            <input
-                v-model="nome"
-                placeholder="Digite o nome"
-                class="form-control"
-            />
+        <div class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5 mb-3">
+                    {{ modoEdicao ? 'Editar pessoa' : 'Novo cadastro' }}
+                </h2>
 
-            <!-- Botão que chama a função salvar() ao ser clicado -->
-            <button @click="salvar" class="btn btn-primary">Cadastrar</button>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nome" class="form-label">Nome</label>
+                        <input
+                            id="nome"
+                            v-model="form.nome"
+                            placeholder="Digite o nome"
+                            class="form-control"
+                        />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">E-mail</label>
+                        <input
+                            id="email"
+                            v-model="form.email"
+                            placeholder="Digite o e-mail"
+                            class="form-control"
+                            type="email"
+                        />
+                    </div>
+                </div>
+
+                <div class="mt-3 d-flex gap-2">
+                    <button v-if="!modoEdicao" @click="salvar" class="btn btn-primary">
+                        Cadastrar
+                    </button>
+                    <button v-else @click="atualizar" class="btn btn-success">
+                        Salvar alterações
+                    </button>
+                    <button v-if="modoEdicao" @click="cancelarEdicao" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                </div>
+
+                <div v-if="mensagemSucesso" class="alert alert-success mt-3">
+                    {{ mensagemSucesso }}
+                </div>
+
+                <div v-if="mensagemErro" class="alert alert-danger mt-3">
+                    {{ mensagemErro }}
+                </div>
+            </div>
         </div>
 
-        <h2>Lista de Pessoas</h2>
+        <h2 class="mb-3">Lista de Pessoas</h2>
 
-        <!-- Lista de pessoas cadastradas -->
-        <ul class="list-group">
-            <!--
-        v-for percorre o array "pessoas"
-        Para cada pessoa, cria um item de lista
-        :key ajuda o Vue a identificar cada item de forma única
-      -->
-            <li
-                v-for="pessoa in pessoas"
-                :key="pessoa.id"
-                class="list-group-item d-flex justify-content-between align-items-center"
-            >
-                <!-- Mostra o nome da pessoa -->
-                {{ pessoa.nome }}
-
-                <!-- Ao clicar, envia o ID da pessoa para a função excluir() -->
-                <button
-                    @click="excluir(pessoa.id)"
-                    class="btn btn-sm btn-danger"
-                >
-                    Excluir
-                </button>
-            </li>
-        </ul>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col">E-mail</th>
+                    <th scope="col" class="text-end">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="pessoa in pessoas" :key="pessoa.id">
+                    <td>{{ pessoa.nome }}</td>
+                    <td>{{ pessoa.email }}</td>
+                    <td class="text-end">
+                        <button @click="editar(pessoa.id)" class="btn btn-sm btn-warning me-2">
+                            Editar
+                        </button>
+                        <button @click="excluir(pessoa.id)" class="btn btn-sm btn-danger">
+                            Excluir
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </template>
 
 <script>
-// Importa o Axios, biblioteca usada para fazer requisições HTTP
- import axios from "axios";
+import axios from "axios";
 
- export default {
+export default {
     data() {
         return {
-            nome: "", // Guarda o nome digitado no formulário
-            pessoas: [], // Guarda a lista de pessoas vindas do banco
+            form: {
+                nome: "",
+                email: "",
+            },
+            pessoas: [],
+            modoEdicao: false,
+            pessoaEditandoId: null,
+            mensagemSucesso: "",
+            mensagemErro: "",
         };
     },
 
-    // mounted() é executado automaticamente quando o componente é carregado
     mounted() {
         this.listar();
     },
 
     methods: {
-        // Busca a lista de pessoas cadastradas no Laravel
         async listar() {
-            // Faz uma requisição GET para a API do Laravel
-            const resposta = await axios.get(
-                "http://localhost:8000/api/pessoas"
-            );
-
-            // Guarda os dados recebidos na variável "pessoas"
+            const resposta = await axios.get("http://localhost:8000/api/pessoas");
             this.pessoas = resposta.data;
         },
 
-        // Envia um novo cadastro para o Laravel
-        async salvar() {
-            // Envia o nome digitado para a API do Laravel
-            await axios.post("http://localhost:8000/api/pessoas", {
-                nome: this.nome,
-            });
-
-            // Limpa o campo após salvar
-            this.nome = "";
-
-            // Atualiza a lista de pessoas
-            this.listar();
+        limparFormulario() {
+            this.form.nome = "";
+            this.form.email = "";
+            this.modoEdicao = false;
+            this.pessoaEditandoId = null;
         },
 
-        // Remove uma pessoa pelo ID
-        async excluir(id) {
-            // Envia o ID para a API excluir o registro
-            await axios.delete(`http://localhost:8000/api/pessoas/${id}`);
+        mostrarMensagemSucesso(mensagem) {
+            this.mensagemErro = "";
+            this.mensagemSucesso = mensagem;
+        },
 
-            // Atualiza a lista depois da exclusão
-            this.listar();
+        mostrarErro(mensagem) {
+            this.mensagemSucesso = "";
+            this.mensagemErro = mensagem;
+        },
+
+        async salvar() {
+            try {
+                await axios.post("http://localhost:8000/api/pessoas", {
+                    nome: this.form.nome,
+                    email: this.form.email,
+                });
+
+                this.limparFormulario();
+                this.listar();
+                this.mostrarMensagemSucesso("Pessoa cadastrada com sucesso!");
+            } catch (error) {
+                const mensagem = error.response?.data?.message || "Erro ao cadastrar pessoa.";
+                this.mostrarErro(mensagem);
+            }
+        },
+
+        async editar(id) {
+            try {
+                const resposta = await axios.get(`http://localhost:8000/api/pessoas/${id}`);
+                const pessoa = resposta.data;
+
+                this.modoEdicao = true;
+                this.pessoaEditandoId = pessoa.id;
+                this.form.nome = pessoa.nome;
+                this.form.email = pessoa.email;
+            } catch (error) {
+                this.mostrarErro("Não foi possível carregar a pessoa para edição.");
+            }
+        },
+
+        async atualizar() {
+            try {
+                await axios.put(`http://localhost:8000/api/pessoas/${this.pessoaEditandoId}`, {
+                    nome: this.form.nome,
+                    email: this.form.email,
+                });
+
+                this.limparFormulario();
+                this.listar();
+                this.mostrarMensagemSucesso("Pessoa atualizada com sucesso!");
+            } catch (error) {
+                const mensagem = error.response?.data?.message || "Erro ao atualizar pessoa.";
+                this.mostrarErro(mensagem);
+            }
+        },
+
+        async excluir(id) {
+            if (!window.confirm("Deseja realmente excluir esta pessoa?")) {
+                return;
+            }
+
+            try {
+                await axios.delete(`http://localhost:8000/api/pessoas/${id}`);
+                this.listar();
+                this.mostrarMensagemSucesso("Pessoa excluída com sucesso!");
+            } catch (error) {
+                this.mostrarErro("Não foi possível excluir a pessoa.");
+            }
+        },
+
+        cancelarEdicao() {
+            this.limparFormulario();
+            this.mensagemErro = "";
         },
     },
- };
+};
 </script>

@@ -1,62 +1,71 @@
 <?php
- 
-// Localização do arquivo dentro do projeto
+
 namespace App\Http\Controllers;
- 
-// Importa o Model Pessoa
-// Será usado para acessar o banco de dados
+
 use App\Models\Pessoa;
- 
-// Importa o Request
-// Ele recebe os dados enviados pelo usuário
 use Illuminate\Http\Request;
- 
-// Cria o Controller da Pessoa
+use Illuminate\Validation\Rule;
+
 class PessoaController extends Controller
 {
-    /*
-     * FUNÇÃO LISTAR
-     * Responsável por buscar todas as pessoas cadastradas.
-     */
     public function index()
     {
-        // Busca todos os registros da tabela "pessoas" no banco
-        $pessoas = Pessoa::all();
- 
-        // Retorna os dados encontrados em formato JSON para o Vue.js
+        $pessoas = Pessoa::orderBy('id', 'desc')->get();
+
         return response()->json($pessoas);
     }
- 
-    /*
-     * FUNÇÃO CADASTRAR
-     * Recebe os dados enviados pelo Vue e salva no banco.
-     */
+
     public function store(Request $request)
     {
-        // Cria um novo registro utilizando o nome recebido
-        $pessoa = Pessoa::create([
-            'nome' => $request->nome // Valor enviado pelo formulário
+        $dados = $request->validate([
+            'nome' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:pessoas,email'],
+        ], [
+            'nome.required' => 'O campo nome é obrigatório.',
+            'email.required' => 'O campo e-mail é obrigatório.',
+            'email.email' => 'Informe um e-mail válido.',
+            'email.unique' => 'Este e-mail já está cadastrado.',
         ]);
- 
-        // Retorna a pessoa cadastrada para o Vue.js
+
+        $pessoa = Pessoa::create($dados);
+
+        return response()->json($pessoa, 201);
+    }
+
+    public function show(int $id)
+    {
+        $pessoa = Pessoa::findOrFail($id);
+
         return response()->json($pessoa);
     }
- 
-    /*
-     * FUNÇÃO EXCLUIR
-     * Remove uma pessoa pelo ID.
-     */
+
+    public function update(Request $request, int $id)
+    {
+        $pessoa = Pessoa::findOrFail($id);
+
+        $dados = $request->validate([
+            'nome' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('pessoas', 'email')->ignore($pessoa->id)],
+        ], [
+            'nome.required' => 'O campo nome é obrigatório.',
+            'email.required' => 'O campo e-mail é obrigatório.',
+            'email.email' => 'Informe um e-mail válido.',
+            'email.unique' => 'Este e-mail já está cadastrado.',
+        ]);
+
+        $pessoa->fill($dados);
+        $pessoa->save();
+
+        return response()->json($pessoa);
+    }
+
     public function destroy(int $id)
     {
-        // Procura uma pessoa no banco utilizando o ID recebido
         $pessoa = Pessoa::findOrFail($id);
- 
-        // Exclui o registro encontrado
         $pessoa->delete();
- 
-        // Retorna uma mensagem informando sucesso
+
         return response()->json([
-            'mensagem' => 'Pessoa excluída'
+            'mensagem' => 'Pessoa excluída com sucesso!',
         ]);
     }
 }
